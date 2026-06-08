@@ -76,11 +76,14 @@ def main() -> None:
 
     # 2) Repeated admin login failure monitoring
     sql = (
-        "SELECT COUNT(*) AS failed_count "
-        "FROM auth_attempts "
-        "WHERE scope IN ('ip','email') "
-        "AND success = 0 "
-        f"AND created_at >= datetime('now', '-{args.window_minutes} minutes');"
+        "SELECT COALESCE(MAX(failed), 0) AS failed_count FROM ("
+        "  SELECT COUNT(*) AS failed "
+        "  FROM auth_attempts "
+        "  WHERE scope IN ('ip','email') "
+        "  AND success = 0 "
+        f"  AND created_at >= datetime('now', '-{args.window_minutes} minutes') "
+        "  GROUP BY scope, scope_key"
+        ");"
     )
 
     code, out, err = run([
